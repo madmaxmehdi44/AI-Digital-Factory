@@ -18,7 +18,7 @@ export async function fetchBusinessStrategy(input: {
     throw new Error(`Failed to generate strategy: ${response.statusText}`);
   }
   const result = await response.json();
-  return { data: result.data, engine: result.engine || "gemini-2.5-flash" };
+  return { data: result.data, engine: result.engine || "gemini-3.7-flash" };
 }
 
 export async function fetchDesignSystem(input: {
@@ -36,7 +36,7 @@ export async function fetchDesignSystem(input: {
     throw new Error(`Failed to generate design system: ${response.statusText}`);
   }
   const result = await response.json();
-  return { data: result.data, engine: result.engine || "gemini-2.5-flash" };
+  return { data: result.data, engine: result.engine || "gemini-3.7-flash" };
 }
 
 export async function fetchCompiledWordPressTheme(input: {
@@ -95,7 +95,7 @@ export async function fetchTroubleshootingAnalysis(input: {
     throw new Error(`Troubleshooting failed: ${response.statusText}`);
   }
   const result = await response.json();
-  return { data: result.data, engine: result.engine || "gemini-2.5-flash" };
+  return { data: result.data, engine: result.engine || "gemini-3.7-flash" };
 }
 
 export async function fetchOptimizations(input: {
@@ -111,7 +111,7 @@ export async function fetchOptimizations(input: {
     throw new Error(`Optimization failed: ${response.statusText}`);
   }
   const result = await response.json();
-  return { data: result.data, engine: result.engine || "gemini-2.5-flash" };
+  return { data: result.data, engine: result.engine || "gemini-3.7-flash" };
 }
 
 export async function fetchOptimizationPlan(input: {
@@ -179,5 +179,62 @@ export async function fetchSeoAudit(input: {
     throw new Error(`SEO Audit failed: ${response.statusText}`);
   }
   const result = await response.json();
-  return { data: result.data, engine: result.engine || "gemini-2.5-flash" };
+  return { data: result.data, engine: result.engine || "gemini-3.7-flash" };
 }
+
+export async function executeOrchestratorPipeline(input: {
+  businessInput: any;
+  domain: string;
+  hostingType: string;
+}): Promise<any> {
+  const response = await fetch("/api/orchestrator/pipeline", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  if (!response.ok) {
+    throw new Error(`Pipeline failed: ${response.statusText}`);
+  }
+  return await response.json();
+}
+
+export async function testConnectorConnection(connectorType: string, host?: string): Promise<any> {
+  const response = await fetch("/api/connectors/test", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ connectorType, host })
+  });
+  if (!response.ok) {
+    throw new Error(`Connector test failed: ${response.statusText}`);
+  }
+  return await response.json();
+}
+
+export async function executeAutonomousRemediation(input: {
+  domain: string;
+  problemTitle?: string;
+  affectedComponent?: string;
+}): Promise<any> {
+  const response = await fetch("/api/operations/remediate", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  if (!response.ok) {
+    throw new Error(`Remediation failed: ${response.statusText}`);
+  }
+  return await response.json();
+}
+
+export async function applySeoAutoFix(domain: string, checkId: string): Promise<any> {
+  const response = await fetch("/api/seo/autofix", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ domain, checkId })
+  });
+  if (!response.ok) {
+    throw new Error(`SEO auto-fix failed: ${response.statusText}`);
+  }
+  return await response.json();
+}
+

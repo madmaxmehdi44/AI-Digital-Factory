@@ -54,7 +54,7 @@ const initialFallbackServices: ExternalApiHealth[] = [
   },
   {
     id: "gemini_api",
-    name: "Gemini 2.5/3.0 Generative AI Engine",
+    name: "Gemini 3.7 Generative AI Engine",
     shortName: "Gemini AI",
     category: "AI Engine",
     endpoint: "https://generativelanguage.googleapis.com/v1beta",
@@ -64,7 +64,7 @@ const initialFallbackServices: ExternalApiHealth[] = [
     lastChecked: new Date().toISOString(),
     description: "Google GenAI multimodal engine for business blueprints, Gutenberg tokens, and self-healing.",
     region: "Google Cloud Global",
-    version: "gemini-2.5-flash"
+    version: "gemini-3.7-flash"
   },
   {
     id: "plesk_api",
