@@ -116,6 +116,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/30"
         }
       ]
+    },
+    {
+      label: "Engineering & Hardening",
+      items: [
+        {
+          id: "developer_tools" as ActiveTab,
+          label: "Developer Tools",
+          icon: Terminal,
+          badge: "Local Sandbox",
+          badgeColor: "bg-sky-500/20 text-sky-300 border-sky-500/30"
+        }
+      ]
     }
   ];
 

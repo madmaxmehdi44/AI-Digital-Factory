@@ -3,6 +3,8 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import { FactoryTestRunner } from "./src/core/tests/runner";
+import { localWordPressRuntime } from "./src/modules/local-runtime";
 
 dotenv.config();
 
@@ -1555,26 +1557,191 @@ app.post("/api/seo/autofix", async (req, res) => {
   }
 });
 
+// 15. Automated Acceptance Test Runner Endpoint
+app.get("/api/system/run-tests", async (req, res) => {
+  try {
+    const report = await FactoryTestRunner.runAllTests();
+    res.json({
+      success: true,
+      report
+    });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Test suite execution failed" });
+  }
+});
+
+// 16. Developer Tools & Local Development Environment Endpoints
+app.get("/api/dev/local-status", (req, res) => {
+  try {
+    const status = localWordPressRuntime.getDaemonStatus();
+    res.json({ success: true, status });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/toggle-daemon", (req, res) => {
+  try {
+    const { running } = req.body;
+    localWordPressRuntime.setDaemonStatus(Boolean(running));
+    const status = localWordPressRuntime.getDaemonStatus();
+    res.json({ success: true, status });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/dev/local-sites", (req, res) => {
+  try {
+    const rawSites = localWordPressRuntime.getAllSites();
+    const sites = rawSites.map(s => ({
+      id: s.id,
+      domain: s.domain,
+      businessName: s.businessName,
+      themeSlug: s.themeSlug,
+      adminUser: s.adminUser,
+      adminEmail: s.adminEmail,
+      wpVersion: s.wpVersion,
+      phpVersion: s.phpVersion,
+      status: s.status,
+      httpStatus: s.httpStatus,
+      dbName: s.dbName,
+      postsCount: s.tables.posts.length,
+      plugins: s.tables.plugins,
+      snapshotsCount: s.snapshots.length,
+      snapshots: s.snapshots.map(sn => ({ id: sn.id, timestamp: sn.timestamp, description: sn.description })),
+      debugLog: s.debugLog.slice(-10),
+      injectedFailure: s.injectedFailure,
+      createdAt: s.createdAt
+    }));
+    res.json({ success: true, sites });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/create-site", (req, res) => {
+  try {
+    const { domain, businessName, themeSlug, adminUser, adminEmail } = req.body;
+    if (!domain || !businessName) {
+      return res.status(400).json({ error: "domain and businessName are required" });
+    }
+    const site = localWordPressRuntime.provisionLocalSite({
+      domain,
+      businessName,
+      themeSlug,
+      adminUser,
+      adminEmail
+    });
+    res.json({ success: true, site: { id: site.id, domain: site.domain, businessName: site.businessName, status: site.status } });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/inject-failure", (req, res) => {
+  try {
+    const { domain, failureType } = req.body;
+    if (!domain || !failureType) {
+      return res.status(400).json({ error: "domain and failureType are required" });
+    }
+    const result = localWordPressRuntime.injectControlledFailure(domain, failureType);
+    res.json({ success: true, result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/clear-failure", (req, res) => {
+  try {
+    const { domain } = req.body;
+    if (!domain) {
+      return res.status(400).json({ error: "domain is required" });
+    }
+    const cleared = localWordPressRuntime.clearInjectedFailure(domain);
+    res.json({ success: cleared, message: "Failure cleared, status 200 OK" });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/execute-healing", (req, res) => {
+  try {
+    const { domain } = req.body;
+    if (!domain) {
+      return res.status(400).json({ error: "domain is required" });
+    }
+    const result = localWordPressRuntime.executeSelfHealing(domain);
+    res.json({ success: true, result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/execute-rollback-test", (req, res) => {
+  try {
+    const { domain } = req.body;
+    if (!domain) {
+      return res.status(400).json({ error: "domain is required" });
+    }
+    const result = localWordPressRuntime.executeRollbackTest(domain);
+    res.json({ success: true, result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/create-snapshot", (req, res) => {
+  try {
+    const { domain, description } = req.body;
+    if (!domain) {
+      return res.status(400).json({ error: "domain is required" });
+    }
+    const snapshotId = localWordPressRuntime.createSnapshot(domain, description || "Manual Developer Snapshot");
+    res.json({ success: true, snapshotId });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/restore-snapshot", (req, res) => {
+  try {
+    const { domain, snapshotId } = req.body;
+    if (!domain || !snapshotId) {
+      return res.status(400).json({ error: "domain and snapshotId are required" });
+    }
+    const restored = localWordPressRuntime.restoreSnapshot(domain, snapshotId);
+    res.json({ success: restored, snapshotId });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 // Vite Middleware for Dev and SPA Static Fallback for Production
 async function startServer() {
-  if (process.env.NODE_ENV !== "production") {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: "spa",
-    });
-    app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), "dist");
-    app.use(express.static(distPath));
-    app.get("*", (req, res) => {
-      res.sendFile(path.join(distPath, "index.html"));
-    });
-  }
+  try {
+    if (process.env.NODE_ENV !== "production") {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: "spa",
+      });
+      app.use(vite.middlewares);
+    } else {
+      const distPath = path.join(process.cwd(), "dist");
+      app.use(express.static(distPath));
+      app.get("*", (req, res) => {
+        res.sendFile(path.join(distPath, "index.html"));
+      });
+    }
 
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`AI Digital Factory Server running on http://0.0.0.0:${PORT}`);
-  });
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`AI Digital Factory Server running on http://0.0.0.0:${PORT}`);
+    });
+  } catch (error) {
+    console.error("Critical error starting server:", error);
+    process.exit(1);
+  }
 }
 
 startServer();

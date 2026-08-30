@@ -233,7 +233,8 @@ export type ActiveTab =
   | 'troubleshooting'
   | 'backup_vault'
   | 'optimization'
-  | 'voice_studio';
+  | 'voice_studio'
+  | 'developer_tools';
 
 export type ApiHealthStatus = 'operational' | 'degraded' | 'down' | 'maintenance';
 

@@ -9,7 +9,10 @@
     "start": "node dist/server.cjs",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "local:status": "tsx -e \"import('./src/lib/LocalDevEngine').then(m => m.localDevEngine.checkDockerStatus()).then(console.log)\"",
+    "local:sites": "tsx -e \"import('./src/lib/LocalDevEngine').then(m => m.localDevEngine.listSites()).then(console.log)\"",
+    "local:test": "tsx -e \"import('./src/core/tests/runner').then(m => m.FactoryTestRunner.runAllTests()).then(r => console.log('Passed:', r.passedTests, '/', r.totalTests))\""
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

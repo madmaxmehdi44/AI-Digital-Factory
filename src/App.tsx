@@ -11,6 +11,7 @@ import { OperationsDashboard } from "./components/OperationsDashboard";
 import { TroubleshootingView } from "./components/TroubleshootingView";
 import { OptimizationEngineView } from "./components/OptimizationEngineView";
 import { BackupDrEngineView } from "./components/BackupDrEngineView";
+import { DeveloperToolsView } from "./components/DeveloperToolsView";
 import { VoiceStudioModal } from "./components/VoiceStudioModal";
 import { AiCopilotDrawer } from "./components/AiCopilotDrawer";
 import { AuthModal } from "./components/AuthModal";
@@ -274,6 +275,8 @@ export default function App() {
                 {activeTab === "optimization" && <OptimizationEngineView fleet={fleet} />}
 
                 {activeTab === "backup_vault" && <BackupDrEngineView fleet={fleet} />}
+
+                {activeTab === "developer_tools" && <DeveloperToolsView />}
 
                 {activeTab === "voice_studio" && (
                   <div className="p-12 text-center space-y-4 max-w-lg mx-auto bento-card">
