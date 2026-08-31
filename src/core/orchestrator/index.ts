@@ -137,7 +137,10 @@ export class FactoryOrchestrator {
       );
 
       // 5. Deployment Plan Synthesis
-      const themeSlug = `wp-${job.businessInput.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}-fse`;
+      const themeSlug = applicationBlueprint.runtime.type === 'wordpress'
+        ? `wp-${job.businessInput.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}-fse`
+        : `${job.businessInput.name.toLowerCase().replace(/[^a-z0-9]/g, "-")}-app`;
+
       const deploymentPlan = infrastructureSelector.createDeploymentPlan(
         applicationBlueprint,
         runtimeSelection,
@@ -171,7 +174,7 @@ export class FactoryOrchestrator {
       updateStage(1, "completed", `Compiled '${designTokens.styleName}' with ${Object.keys(designTokens.cssVariables).length} CSS tokens.`, `${((Date.now() - t2) / 1000).toFixed(2)}s`);
 
       // Stage 3: Theme Compilation via ApplicationRuntime
-      updateStage(2, "in_progress", `Compiling block theme with ${runtime.name}...`);
+      updateStage(2, "in_progress", `Compiling application artifacts with ${runtime.name}...`);
       const t3 = Date.now();
       const buildResult = await runtime.build({
         siteId: job.id,
@@ -181,7 +184,7 @@ export class FactoryOrchestrator {
       });
 
       const theme: CompiledTheme = {
-        themeName: `${job.businessInput.name} FSE Block Theme`,
+        themeName: `${job.businessInput.name} ${applicationBlueprint.runtime.type === 'wordpress' ? 'FSE Block Theme' : 'Application Package'}`,
         themeSlug,
         version: "1.0.0",
         fileCount: buildResult.fileCount,
@@ -189,7 +192,7 @@ export class FactoryOrchestrator {
         createdAt: new Date().toISOString()
       };
       job.compiledTheme = theme;
-      updateStage(2, "completed", `Compiled ${theme.fileCount} FSE templates, patterns, and theme.json v3.`, `${((Date.now() - t3) / 1000).toFixed(2)}s`);
+      updateStage(2, "completed", `Compiled ${theme.fileCount} application artifacts, configuration, and templates.`, `${((Date.now() - t3) / 1000).toFixed(2)}s`);
 
       // Save theme to DB
       factoryDB.saveTheme({
@@ -259,7 +262,7 @@ export class FactoryOrchestrator {
         liveUrl,
         adminCredentials: {
           user: "factory_admin",
-          loginUrl: installResult.data?.adminUrl || `${liveUrl}/wp-admin`
+          loginUrl: installResult.data?.adminUrl || (applicationBlueprint.runtime.type === 'wordpress' ? `${liveUrl}/wp-admin` : `${liveUrl}/api/health`)
         },
         steps: [
           { id: "ENV_VALIDATE", name: "1. Runtime Environment Diagnostics", status: "completed", duration: "0.05s" },

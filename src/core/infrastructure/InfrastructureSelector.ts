@@ -48,12 +48,8 @@ export class InfrastructureSelector {
     const targetEnv: EnvironmentTier = environment || blueprint.deploymentRequirements.targetEnvironment || 'development';
     
     // Normalize target provider type
-    let requestedType: InfrastructureType = 'local_docker';
-    if (preferredHosting === 'cpanel') requestedType = 'cpanel';
-    else if (preferredHosting === 'plesk') requestedType = 'plesk';
-    else if (preferredHosting === 'ssh') requestedType = 'ssh';
-    else if (preferredHosting === 'docker' || preferredHosting === 'local_docker') requestedType = 'local_docker';
-    else if (preferredHosting === 'cloudrun') requestedType = 'cloudrun';
+    let requestedType: InfrastructureType = preferredHosting as InfrastructureType;
+    if (preferredHosting === 'docker') requestedType = 'local_docker';
 
     // Development tier maps directly to local development provider
     if (targetEnv === 'development') {
