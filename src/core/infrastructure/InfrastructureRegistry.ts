@@ -5,6 +5,9 @@
 
 import { InfrastructureProvider, InfrastructureType, EnvironmentTier } from './types';
 import { localDevelopmentProvider } from './local/LocalDevelopmentProvider';
+import { InfrastructureResolutionError } from './InfrastructureSelector';
+
+export { InfrastructureResolutionError };
 
 export class InfrastructureRegistry {
   private static instance: InfrastructureRegistry;
@@ -27,11 +30,26 @@ export class InfrastructureRegistry {
     this.providers.set(provider.type, provider);
   }
 
+  public unregisterProvider(idOrType: string): boolean {
+    const provider = this.providers.get(idOrType);
+    if (!provider) return false;
+    this.providers.delete(provider.id);
+    this.providers.delete(provider.type);
+    return true;
+  }
+
+  public hasProvider(idOrType: string): boolean {
+    return this.providers.has(idOrType);
+  }
+
   public getProvider(idOrType: string): InfrastructureProvider {
     const provider = this.providers.get(idOrType);
     if (!provider) {
-      // Default to local development provider if not found
-      return localDevelopmentProvider;
+      // If it's local docker alias, return localDevelopmentProvider
+      if (idOrType === 'local_docker' || idOrType === 'docker' || idOrType === 'provider-local-docker') {
+        return localDevelopmentProvider;
+      }
+      throw new InfrastructureResolutionError(`Infrastructure provider '${idOrType}' is not registered in InfrastructureRegistry.`);
     }
     return provider;
   }
@@ -48,6 +66,12 @@ export class InfrastructureRegistry {
     this.providers.forEach(p => unique.set(p.id, p));
     return Array.from(unique.values());
   }
+
+  public reset(): void {
+    this.providers.clear();
+    this.registerProvider(localDevelopmentProvider);
+  }
 }
 
 export const infrastructureRegistry = InfrastructureRegistry.getInstance();
+

@@ -7,7 +7,10 @@
  */
 
 import { BusinessIntelligenceAgent } from '../../agents/business-agent';
+import { businessIntelligenceAgent } from '../../modules/business-agent';
 import { DesignSystemAgent } from '../../agents/design-agent';
+import { designSystemEngine } from '../../modules/design-engine';
+import { BusinessInput } from '../../types';
 import { WordPressThemeCompilerAgent } from '../../agents/theme-agent';
 import { DeploymentAgent } from '../../agents/deployment-agent';
 import { AutonomousOperationsAgent } from '../../agents/operations-agent';
@@ -16,11 +19,13 @@ import { ExecutionContext } from '../../agents/core';
 import { hostingConnectors, CredentialVault } from '../../modules/connectors';
 import { localWordPressRuntime } from '../../modules/local-runtime';
 import { localDevEngine } from '../../lib/LocalDevEngine';
-import { localDevelopmentProvider, infrastructureRegistry } from '../infrastructure';
-import { wordPressRuntime, runtimeRegistry } from '../runtime';
+import { localDevelopmentProvider, infrastructureRegistry, infrastructureSelector, InfrastructureResolutionError } from '../infrastructure';
+import { wordPressRuntime, runtimeRegistry, runtimeSelector, RuntimeResolutionError } from '../runtime';
+import { applicationArchitect, ApplicationBlueprint, DeploymentPlan } from '../application';
 import { LocalTools } from '../tools';
 import { SecurityGatekeeper } from '../security';
 import { RepairPolicyLevel, SiteLifecycleState } from '../models';
+
 
 export type ExecutionMode =
   | 'REAL_LOCAL'
@@ -1711,6 +1716,518 @@ export class FactoryTestRunner {
         passed: false,
         durationMs: Date.now() - t35Start,
         details: "Exception in observability test",
+        error: e.message
+      });
+    }
+
+    // =========================================================================
+    // SUITE 9: RUNTIME AGNOSTIC APPLICATION ARCHITECTURE & RESOLUTION
+    // =========================================================================
+
+    // Test 42: Application Blueprint Synthesis & Separation
+    const t42Start = Date.now();
+    try {
+      const bizInput42: BusinessInput = {
+        id: "biz_test_app",
+        name: "Apex Global Logistics",
+        type: "business",
+        industry: "Supply Chain & Freight Logistics",
+        location: "Chicago, USA",
+        targetAudience: "Enterprise Shippers and Carriers",
+        goals: "Enterprise Contract Acquisition",
+        personality: "professional",
+        stylePreference: "modern",
+        createdAt: new Date().toISOString()
+      };
+      const bizBlueprint = await businessIntelligenceAgent.analyze(bizInput42);
+
+      const appBlueprint = applicationArchitect.synthesize(
+        bizBlueprint,
+        bizInput42,
+        'docker',
+        'development'
+      );
+
+      const isValidStructure =
+        Boolean(appBlueprint.applicationId) &&
+        appBlueprint.applicationType === 'business_website' &&
+        appBlueprint.runtime.id === 'runtime-wordpress' &&
+        appBlueprint.architecture.frontend === 'wordpress-fse' &&
+        appBlueprint.architecture.backend === 'wordpress' &&
+        appBlueprint.architecture.database === 'mariadb' &&
+        appBlueprint.services.length >= 3 &&
+        appBlueprint.requirements.cms === true &&
+        appBlueprint.requirements.themeCompilation === true &&
+        appBlueprint.deploymentRequirements.targetEnvironment === 'development' &&
+        appBlueprint.securityRequirements.isolationLevel === 'container';
+
+      const passed = isValidStructure;
+      results.push({
+        id: "TEST-42-APPLICATION-BLUEPRINT",
+        name: "Test 42 — Application Blueprint Synthesis & Business Separation",
+        category: "ARCHITECTURE",
+        executionMode: "UNIT_ONLY",
+        provider: "ApplicationArchitect",
+        runtime: "Blueprint Synthesis Engine",
+        environment: "development",
+        passed,
+        durationMs: Date.now() - t42Start,
+        details: passed
+          ? `Application Blueprint synthesized cleanly. Explicitly separates software architecture (${appBlueprint.architecture.frontend}/${appBlueprint.architecture.backend}) from business strategy.`
+          : "Application Blueprint synthesis structure invalid."
+      });
+    } catch (e: any) {
+      results.push({
+        id: "TEST-42-APPLICATION-BLUEPRINT",
+        name: "Test 42 — Application Blueprint Synthesis & Business Separation",
+        category: "ARCHITECTURE",
+        executionMode: "UNIT_ONLY",
+        provider: "ApplicationArchitect",
+        runtime: "Blueprint Synthesis Engine",
+        environment: "development",
+        passed: false,
+        durationMs: Date.now() - t42Start,
+        details: "Exception in Application Blueprint synthesis test",
+        error: e.message
+      });
+    }
+
+    // Test 43: Deterministic Runtime Selection
+    const t43Start = Date.now();
+    try {
+      const bizInput43: BusinessInput = {
+        id: "biz_test_sel",
+        name: "Kaiser Advisory",
+        type: "advisory",
+        industry: "M&A Advisory",
+        location: "Frankfurt, Germany",
+        targetAudience: "Institutional Investors",
+        goals: "Deal Flow Generation",
+        personality: "authoritative",
+        stylePreference: "minimal",
+        createdAt: new Date().toISOString()
+      };
+      const bizBlueprint = await businessIntelligenceAgent.analyze(bizInput43);
+
+      const appBlueprint = applicationArchitect.synthesize(
+        bizBlueprint,
+        bizInput43,
+        'docker',
+        'development'
+      );
+
+      const selection = runtimeSelector.selectRuntime(appBlueprint);
+
+      const passed =
+        selection.runtimeId === 'runtime-wordpress' &&
+        selection.compatible === true &&
+        selection.confidence >= 0.9 &&
+        selection.missingCapabilities.length === 0 &&
+        selection.matchedCapabilities.includes('WP_CLI') &&
+        selection.matchedCapabilities.includes('THEME_COMPILATION');
+
+      results.push({
+        id: "TEST-43-RUNTIME-SELECTION",
+        name: "Test 43 — Deterministic Runtime Selection & Capability Resolution",
+        category: "RUNTIME",
+        executionMode: "UNIT_ONLY",
+        provider: "RuntimeSelector",
+        runtime: "RuntimeRegistry",
+        environment: "development",
+        passed,
+        durationMs: Date.now() - t43Start,
+        details: passed
+          ? `RuntimeSelector deterministically selected '${selection.runtimeId}' with ${(selection.confidence * 100).toFixed(0)}% confidence based on ${selection.matchedCapabilities.length} negotiated capabilities.`
+          : "Runtime selection failed validation."
+      });
+    } catch (e: any) {
+      results.push({
+        id: "TEST-43-RUNTIME-SELECTION",
+        name: "Test 43 — Deterministic Runtime Selection & Capability Resolution",
+        category: "RUNTIME",
+        executionMode: "UNIT_ONLY",
+        provider: "RuntimeSelector",
+        runtime: "RuntimeRegistry",
+        environment: "development",
+        passed: false,
+        durationMs: Date.now() - t43Start,
+        details: "Exception in runtime selection test",
+        error: e.message
+      });
+    }
+
+    // Test 44: Capability Negotiation
+    const t44Start = Date.now();
+    try {
+      const customBlueprint = applicationArchitect.synthesizeCustom({
+        applicationType: 'business_website',
+        name: 'Enterprise Portal',
+        requirements: {
+          cms: true,
+          themeCompilation: true,
+          customApi: true,
+          objectCache: true,
+          ssl: true
+        }
+      });
+
+      const selection = runtimeSelector.selectRuntime(customBlueprint);
+
+      const expectedCaps = ['WP_CLI', 'THEME_COMPILATION', 'REST_API', 'OBJECT_CACHE', 'SSL_MANAGEMENT'];
+      const allMatched = expectedCaps.every(c => selection.matchedCapabilities.includes(c as any));
+
+      const passed = selection.compatible && allMatched && selection.missingCapabilities.length === 0;
+      results.push({
+        id: "TEST-44-CAPABILITY-NEGOTIATION",
+        name: "Test 44 — Granular Capability Negotiation & Requirement Matching",
+        category: "RUNTIME",
+        executionMode: "UNIT_ONLY",
+        provider: "RuntimeSelector",
+        runtime: "Capability Negotiation Engine",
+        environment: "development",
+        passed,
+        durationMs: Date.now() - t44Start,
+        details: passed
+          ? `Negotiated all requested capabilities (${selection.matchedCapabilities.join(', ')}) without mismatches.`
+          : "Capability negotiation failed."
+      });
+    } catch (e: any) {
+      results.push({
+        id: "TEST-44-CAPABILITY-NEGOTIATION",
+        name: "Test 44 — Granular Capability Negotiation & Requirement Matching",
+        category: "RUNTIME",
+        executionMode: "UNIT_ONLY",
+        provider: "RuntimeSelector",
+        runtime: "Capability Negotiation Engine",
+        environment: "development",
+        passed: false,
+        durationMs: Date.now() - t44Start,
+        details: "Exception in capability negotiation test",
+        error: e.message
+      });
+    }
+
+    // Test 45: Infrastructure Selection
+    const t45Start = Date.now();
+    try {
+      const customBlueprint = applicationArchitect.synthesizeCustom({
+        applicationType: 'business_website',
+        name: 'Local Test Site',
+        deploymentRequirements: {
+          targetEnvironment: 'development',
+          preferredHosting: 'docker'
+        }
+      });
+
+      const runtimeSel = runtimeSelector.selectRuntime(customBlueprint);
+      const infraSel = infrastructureSelector.selectProvider(customBlueprint, runtimeSel, 'docker', 'development');
+
+      const passed =
+        infraSel.providerId === 'provider-local-docker' &&
+        infraSel.providerType === 'local_docker' &&
+        infraSel.environment === 'development' &&
+        infraSel.compatible === true &&
+        infraSel.matchedCapabilities.includes('DATABASE_PROVISIONING');
+
+      results.push({
+        id: "TEST-45-INFRASTRUCTURE-SELECTION",
+        name: "Test 45 — Infrastructure Selection & Environment Tier Resolution",
+        category: "INFRASTRUCTURE",
+        executionMode: "UNIT_ONLY",
+        provider: "InfrastructureSelector",
+        runtime: "InfrastructureRegistry",
+        environment: "development",
+        passed,
+        durationMs: Date.now() - t45Start,
+        details: passed
+          ? `InfrastructureSelector resolved provider '${infraSel.providerId}' for tier '${infraSel.environment}' with capabilities: ${infraSel.matchedCapabilities.join(', ')}.`
+          : "Infrastructure selection failed."
+      });
+    } catch (e: any) {
+      results.push({
+        id: "TEST-45-INFRASTRUCTURE-SELECTION",
+        name: "Test 45 — Infrastructure Selection & Environment Tier Resolution",
+        category: "INFRASTRUCTURE",
+        executionMode: "UNIT_ONLY",
+        provider: "InfrastructureSelector",
+        runtime: "InfrastructureRegistry",
+        environment: "development",
+        passed: false,
+        durationMs: Date.now() - t45Start,
+        details: "Exception in infrastructure selection test",
+        error: e.message
+      });
+    }
+
+    // Test 46: Explicit Inspectable Deployment Plan
+    const t46Start = Date.now();
+    try {
+      const customBlueprint = applicationArchitect.synthesizeCustom({
+        applicationType: 'business_website',
+        name: 'Deployment Plan Target',
+        securityRequirements: {
+          isolationLevel: 'container',
+          waf: true,
+          fileEditDisabled: true
+        }
+      });
+
+      const runtimeSel = runtimeSelector.selectRuntime(customBlueprint);
+      const infraSel = infrastructureSelector.selectProvider(customBlueprint, runtimeSel, 'docker', 'development');
+      const deploymentPlan: DeploymentPlan = infrastructureSelector.createDeploymentPlan(
+        customBlueprint,
+        runtimeSel,
+        infraSel,
+        'plan-test.local',
+        'wp-plan-test-fse'
+      );
+
+      const isValidPlan =
+        deploymentPlan.planId.startsWith('plan_') &&
+        deploymentPlan.runtime.id === 'runtime-wordpress' &&
+        deploymentPlan.provider.id === 'provider-local-docker' &&
+        deploymentPlan.environment === 'development' &&
+        deploymentPlan.artifacts.themeSlug === 'wp-plan-test-fse' &&
+        deploymentPlan.rollbackStrategy.snapshotBeforeDeploy === true &&
+        deploymentPlan.securityPolicy.wafEnabled === true &&
+        deploymentPlan.securityPolicy.fileEditDisabled === true &&
+        deploymentPlan.architectureDecisionLog.confidence > 0.8;
+
+      const passed = isValidPlan;
+      results.push({
+        id: "TEST-46-DEPLOYMENT-PLAN",
+        name: "Test 46 — Explicit & Inspectable Deployment Plan Synthesis",
+        category: "ORCHESTRATION",
+        executionMode: "UNIT_ONLY",
+        provider: "InfrastructureSelector",
+        runtime: "DeploymentPlan Engine",
+        environment: "development",
+        passed,
+        durationMs: Date.now() - t46Start,
+        details: passed
+          ? `Synthesized inspectable DeploymentPlan '${deploymentPlan.planId}' with runtime '${deploymentPlan.runtime.id}', provider '${deploymentPlan.provider.id}', and rollback strategy.`
+          : "Deployment plan synthesis validation failed."
+      });
+    } catch (e: any) {
+      results.push({
+        id: "TEST-46-DEPLOYMENT-PLAN",
+        name: "Test 46 — Explicit & Inspectable Deployment Plan Synthesis",
+        category: "ORCHESTRATION",
+        executionMode: "UNIT_ONLY",
+        provider: "InfrastructureSelector",
+        runtime: "DeploymentPlan Engine",
+        environment: "development",
+        passed: false,
+        durationMs: Date.now() - t46Start,
+        details: "Exception in deployment plan test",
+        error: e.message
+      });
+    }
+
+    // Test 47: WordPress Backward Compatibility Pipeline
+    const t47Start = Date.now();
+    try {
+      const bizInput47: BusinessInput = {
+        id: "biz_compat_wp",
+        name: "Berlin Boutique",
+        type: "retail",
+        industry: "Fashion Boutique",
+        location: "Berlin, Germany",
+        targetAudience: "Contemporary Shoppers",
+        goals: "Retail Footwear and Apparel Sales",
+        personality: "chic",
+        stylePreference: "modern",
+        createdAt: new Date().toISOString()
+      };
+      const bizBlueprint = await businessIntelligenceAgent.analyze(bizInput47);
+
+      const appBlueprint = applicationArchitect.synthesize(
+        bizBlueprint,
+        bizInput47,
+        'docker',
+        'development'
+      );
+
+      const { runtime, selection: runtimeSel } = runtimeSelector.resolveAndValidate(appBlueprint);
+      const { provider, selection: infraSel } = infrastructureSelector.resolveAndValidate(appBlueprint, runtimeSel, 'docker', 'development');
+
+      const themeSlug = "wp-berlin-boutique-fse";
+      const plan = infrastructureSelector.createDeploymentPlan(appBlueprint, runtimeSel, infraSel, 'berlinboutique.local', themeSlug);
+
+      const designTokens = await designSystemEngine.generateTokens(bizBlueprint, "modern");
+
+      const buildResult = await runtime.build({
+        siteId: "site_compat_47",
+        themeSlug,
+        designTokens,
+        options: { blueprint: bizBlueprint, applicationBlueprint: appBlueprint }
+      });
+
+      const passed =
+        runtime.id === 'runtime-wordpress' &&
+        provider.type === 'local_docker' &&
+        buildResult.success &&
+        buildResult.fileCount >= 8 &&
+        Boolean(plan.planId);
+
+      results.push({
+        id: "TEST-47-WORDPRESS-BACKWARD-COMPATIBILITY",
+        name: "Test 47 — WordPress Full-Stack End-to-End Backward Compatibility",
+        category: "REGRESSION",
+        executionMode: "INTEGRATION",
+        provider: "LocalDevelopmentProvider",
+        runtime: "WordPressRuntime",
+        environment: "development",
+        passed,
+        durationMs: Date.now() - t47Start,
+        details: passed
+          ? `Verified complete WordPress workflow (Business -> Application Blueprint -> RuntimeSelector -> InfrastructureSelector -> DeploymentPlan -> ThemeCompiler [${buildResult.fileCount} files]). Zero regression.`
+          : "WordPress backward compatibility check failed."
+      });
+    } catch (e: any) {
+      results.push({
+        id: "TEST-47-WORDPRESS-BACKWARD-COMPATIBILITY",
+        name: "Test 47 — WordPress Full-Stack End-to-End Backward Compatibility",
+        category: "REGRESSION",
+        executionMode: "INTEGRATION",
+        provider: "LocalDevelopmentProvider",
+        runtime: "WordPressRuntime",
+        environment: "development",
+        passed: false,
+        durationMs: Date.now() - t47Start,
+        details: "Exception in WordPress backward compatibility test",
+        error: e.message
+      });
+    }
+
+    // Test 48: Unknown / Unsupported Runtime Rejection (NO SILENT FALLBACK)
+    const t48Start = Date.now();
+    try {
+      const unsupportedBlueprint = applicationArchitect.synthesizeCustom({
+        applicationType: 'web_application',
+        name: 'Legacy Rails Monolith',
+        runtime: {
+          id: 'runtime-ruby-on-rails',
+          type: 'ruby',
+          reason: 'Legacy Monolith Application'
+        }
+      });
+
+      const selection = runtimeSelector.selectRuntime(unsupportedBlueprint);
+      let rejectedCleanly = false;
+
+      try {
+        runtimeSelector.resolveAndValidate(unsupportedBlueprint);
+      } catch (err: any) {
+        if (err instanceof RuntimeResolutionError || err.name === 'RuntimeResolutionError') {
+          rejectedCleanly = true;
+        }
+      }
+
+      let directRegistryRejected = false;
+      try {
+        runtimeRegistry.getRuntime('runtime-ruby-on-rails');
+      } catch (err: any) {
+        if (err instanceof RuntimeResolutionError || err.name === 'RuntimeResolutionError') {
+          directRegistryRejected = true;
+        }
+      }
+
+      const passed =
+        selection.compatible === false &&
+        selection.confidence === 0 &&
+        rejectedCleanly &&
+        directRegistryRejected;
+
+      results.push({
+        id: "TEST-48-UNKNOWN-RUNTIME-REJECTION",
+        name: "Test 48 — Unknown Runtime Rejection & Anti-Silent-Fallback Hardening",
+        category: "SECURITY",
+        executionMode: "UNIT_ONLY",
+        provider: "RuntimeRegistry",
+        runtime: "RuntimeSelector",
+        environment: "development",
+        passed,
+        durationMs: Date.now() - t48Start,
+        details: passed
+          ? "CONFIRMED: Unsupported runtime 'runtime-ruby-on-rails' was STRICTLY REJECTED with RuntimeResolutionError. ZERO silent fallback to WordPress."
+          : "CRITICAL FAILURE: Unknown runtime was silently replaced or accepted!"
+      });
+    } catch (e: any) {
+      results.push({
+        id: "TEST-48-UNKNOWN-RUNTIME-REJECTION",
+        name: "Test 48 — Unknown Runtime Rejection & Anti-Silent-Fallback Hardening",
+        category: "SECURITY",
+        executionMode: "UNIT_ONLY",
+        provider: "RuntimeRegistry",
+        runtime: "RuntimeSelector",
+        environment: "development",
+        passed: false,
+        durationMs: Date.now() - t48Start,
+        details: "Exception in unknown runtime rejection test",
+        error: e.message
+      });
+    }
+
+    // Test 49: Provider Capability & Registration Mismatch Rejection
+    const t49Start = Date.now();
+    try {
+      const customBlueprint = applicationArchitect.synthesizeCustom({
+        applicationType: 'business_website',
+        name: 'Unsupported Hyperscaler Deploy',
+        deploymentRequirements: {
+          targetEnvironment: 'production',
+          preferredHosting: 'cloudrun'
+        }
+      });
+
+      const runtimeSel = runtimeSelector.selectRuntime(customBlueprint);
+      
+      let providerRejected = false;
+      try {
+        infrastructureSelector.resolveAndValidate(customBlueprint, runtimeSel, 'unsupported_provider_xyz', 'production');
+      } catch (err: any) {
+        if (err instanceof InfrastructureResolutionError || err.name === 'InfrastructureResolutionError') {
+          providerRejected = true;
+        }
+      }
+
+      let directRegistryRejected = false;
+      try {
+        infrastructureRegistry.getProvider('unsupported_provider_xyz');
+      } catch (err: any) {
+        if (err instanceof InfrastructureResolutionError || err.name === 'InfrastructureResolutionError') {
+          directRegistryRejected = true;
+        }
+      }
+
+      const passed = providerRejected && directRegistryRejected;
+      results.push({
+        id: "TEST-49-PROVIDER-CAPABILITY-MISMATCH",
+        name: "Test 49 — Provider Capability & Registration Mismatch Rejection",
+        category: "SECURITY",
+        executionMode: "UNIT_ONLY",
+        provider: "InfrastructureRegistry",
+        runtime: "InfrastructureSelector",
+        environment: "production",
+        passed,
+        durationMs: Date.now() - t49Start,
+        details: passed
+          ? "CONFIRMED: Unregistered infrastructure provider 'unsupported_provider_xyz' was STRICTLY REJECTED with InfrastructureResolutionError. Execution blocked."
+          : "Provider mismatch check failed to reject unknown provider."
+      });
+    } catch (e: any) {
+      results.push({
+        id: "TEST-49-PROVIDER-CAPABILITY-MISMATCH",
+        name: "Test 49 — Provider Capability & Registration Mismatch Rejection",
+        category: "SECURITY",
+        executionMode: "UNIT_ONLY",
+        provider: "InfrastructureRegistry",
+        runtime: "InfrastructureSelector",
+        environment: "production",
+        passed: false,
+        durationMs: Date.now() - t49Start,
+        details: "Exception in provider mismatch test",
         error: e.message
       });
     }
