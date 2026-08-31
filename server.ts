@@ -5,6 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import { FactoryTestRunner } from "./src/core/tests/runner";
 import { localWordPressRuntime } from "./src/modules/local-runtime";
+import { localDevEngine } from "./src/lib/LocalDevEngine";
 
 dotenv.config();
 
@@ -1712,6 +1713,51 @@ app.post("/api/dev/restore-snapshot", (req, res) => {
     }
     const restored = localWordPressRuntime.restoreSnapshot(domain, snapshotId);
     res.json({ success: restored, snapshotId });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Node.js Local Development Endpoints
+app.post("/api/dev/create-node-site", async (req, res) => {
+  try {
+    const { domain, appName, framework, port } = req.body;
+    if (!domain) {
+      return res.status(400).json({ error: "domain is required" });
+    }
+    const result = await localDevEngine.installNodeSite({
+      domain,
+      appName: appName || "Node Service",
+      framework: framework || "express",
+      port: port ? Number(port) : undefined
+    });
+    res.json({ success: result.success, result });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.get("/api/dev/node-status", async (req, res) => {
+  try {
+    const domain = req.query.domain as string;
+    if (!domain) {
+      return res.status(400).json({ error: "domain query parameter is required" });
+    }
+    const status = await localDevEngine.getNodeSiteStatus(domain);
+    res.json({ success: true, status });
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+app.post("/api/dev/restart-node-site", async (req, res) => {
+  try {
+    const { domain } = req.body;
+    if (!domain) {
+      return res.status(400).json({ error: "domain is required" });
+    }
+    const result = await localDevEngine.restartNodeSite(domain);
+    res.json({ success: true, result });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }

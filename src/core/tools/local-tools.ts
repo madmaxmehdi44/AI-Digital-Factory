@@ -6,7 +6,7 @@
 
 import { SecurityGatekeeper } from '../security';
 import { RepairPolicyLevel } from '../models';
-import { localDevEngine, WordPressSiteConfig } from '../../lib/LocalDevEngine';
+import { localDevEngine, WordPressSiteConfig, NodeSiteConfig } from '../../lib/LocalDevEngine';
 import { localDevelopmentProvider } from '../infrastructure';
 
 // Strict WP-CLI command family allowlist
@@ -24,6 +24,17 @@ const PERMITTED_WP_CLI_FAMILIES = new Set([
   'cron',
   'media',
   'eval-file'
+]);
+
+// Permitted Node package managers and runtime commands
+const PERMITTED_NODE_BINARIES = new Set([
+  'node',
+  'npm',
+  'pnpm',
+  'yarn',
+  'bun',
+  'corepack',
+  'npx'
 ]);
 
 export class LocalTools {
@@ -153,5 +164,105 @@ export class LocalTools {
    */
   public static async createDatabase(dbName: string, user = 'wp_user', password = 'wp_password') {
     return localDevelopmentProvider.createDatabase(dbName, user, password);
+  }
+
+  // ==========================================
+  // NODE.JS LOCAL TOOLS
+  // ==========================================
+
+  /**
+   * node.local.install - Provisions a local Node.js application container
+   */
+  public static async installNodeSite(
+    config: NodeSiteConfig,
+    context?: { tenantId?: string; role?: string }
+  ) {
+    if (!config.domain || typeof config.domain !== 'string') {
+      throw new Error('[ValidationError] Invalid or missing domain for Node site installation.');
+    }
+    if (!SecurityGatekeeper.validateAllowedTool('node.local.install')) {
+      throw new Error('[SecurityGatekeeper] Tool node.local.install is not authorized.');
+    }
+
+    return localDevEngine.installNodeSite(config);
+  }
+
+  /**
+   * node.local.status - Retrieve Node container and service status
+   */
+  public static async getNodeStatus(siteIdOrDomain: string) {
+    if (!SecurityGatekeeper.validateAllowedTool('node.local.status')) {
+      throw new Error('[SecurityGatekeeper] Tool node.local.status is not authorized.');
+    }
+    return localDevEngine.getNodeSiteStatus(siteIdOrDomain);
+  }
+
+  /**
+   * node.local.command - Secure, allowlisted Node binary and package manager execution
+   */
+  public static async runNodeCommand(
+    siteIdOrDomain: string,
+    binary: string,
+    args: string[] = []
+  ) {
+    if (!SecurityGatekeeper.validateAllowedTool('node.local.command')) {
+      throw new Error('[SecurityGatekeeper] Tool node.local.command is not authorized.');
+    }
+
+    const trimmedBinary = binary.trim().toLowerCase();
+    if (!PERMITTED_NODE_BINARIES.has(trimmedBinary)) {
+      throw new Error(`[SecurityException] Node binary '${trimmedBinary}' is forbidden by security policy.`);
+    }
+
+    // Disallow dangerous shell metacharacters and directory traversal
+    const dangerousChars = [';', '&&', '||', '`', '$(', '>', '<', '|', '..', '/etc/', '/root'];
+    for (const arg of args) {
+      if (dangerousChars.some(char => arg.includes(char))) {
+        throw new Error(`[SecurityException] Illegal characters detected in command argument: ${arg}`);
+      }
+    }
+
+    return localDevEngine.runNodeCommand(siteIdOrDomain, trimmedBinary, args);
+  }
+
+  /**
+   * node.local.restart - Restart a Node.js container
+   */
+  public static async restartNodeSite(siteIdOrDomain: string) {
+    if (!SecurityGatekeeper.validateAllowedTool('node.local.restart')) {
+      throw new Error('[SecurityGatekeeper] Tool node.local.restart is not authorized.');
+    }
+    return localDevEngine.restartNodeSite(siteIdOrDomain);
+  }
+
+  /**
+   * node.local.rollback - Rollback a Node site to a snapshot
+   */
+  public static async rollbackNodeSite(siteIdOrDomain: string, snapshotId: string) {
+    if (!SecurityGatekeeper.validateAllowedTool('node.local.rollback')) {
+      throw new Error('[SecurityGatekeeper] Tool node.local.rollback is not authorized.');
+    }
+    return localDevEngine.restoreNodeSnapshot(siteIdOrDomain, snapshotId);
+  }
+
+  /**
+   * node.local.remove - Remove a Node container (Requires Policy check)
+   */
+  public static async removeNodeSite(
+    siteIdOrDomain: string,
+    policyConfig: { currentLevel: RepairPolicyLevel; hasApproval?: boolean }
+  ) {
+    const policy = SecurityGatekeeper.checkPolicyLevelPermission(
+      'node.local.remove',
+      RepairPolicyLevel.LEVEL_2_REVERSIBLE_CHANGE,
+      policyConfig.currentLevel,
+      policyConfig.hasApproval
+    );
+
+    if (!policy.permitted) {
+      throw new Error(`[SecurityGatekeeper] ${policy.reason}`);
+    }
+
+    return localDevEngine.uninstallNodeSite(siteIdOrDomain);
   }
 }

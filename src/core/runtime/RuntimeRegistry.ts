@@ -19,6 +19,7 @@ import {
   LogResult
 } from './types';
 import { wordPressRuntime, WordPressRuntime } from './wordpress';
+import { nodeRuntime, NodeRuntime } from './node';
 import { RuntimeResolutionError } from './RuntimeSelector';
 
 // Export the generic ApplicationRuntime interface and all contract types
@@ -48,8 +49,9 @@ export class RuntimeRegistry {
   }
 
   private initDefaults(): void {
-    // Register default WordPress Runtime as the first implementation
+    // Register first-class production runtimes
     this.registerRuntime(wordPressRuntime);
+    this.registerRuntime(nodeRuntime);
   }
 
   public static getInstance(): RuntimeRegistry {

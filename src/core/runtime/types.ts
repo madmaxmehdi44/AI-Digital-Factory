@@ -42,7 +42,7 @@ export interface RuntimeConfig {
   siteId: string;
   domain: string;
   environment: 'development' | 'staging' | 'production';
-  providerMode: 'LOCAL' | 'PRODUCTION' | 'DEVELOPMENT_MOCK';
+  providerMode?: 'LOCAL' | 'PRODUCTION' | 'DEVELOPMENT_MOCK';
   port?: number;
   adminUser?: string;
   adminPassword?: string;
@@ -119,14 +119,21 @@ export interface HealthResult {
   healthy: boolean;
   httpStatus: number;
   responseTimeMs: number;
-  phpVersion: string;
+  phpVersion?: string;
+  nodeVersion?: string;
   runtimeVersion: string;
+  framework?: string;
+  port?: number;
+  processStatus?: 'RUNNING' | 'STOPPED' | 'ERROR' | 'DEGRADED' | 'PROVISIONING' | string;
   dbConnected: boolean;
-  themeActive: string;
+  themeActive?: string;
+  memoryUsageMb?: number;
+  uptimeSeconds?: number;
   errorsCount: number;
   warningsCount: number;
   recentLogs: string[];
   lastChecked: string;
+  runtimeSpecific?: Record<string, any>;
 }
 
 export interface LogResult {
@@ -134,7 +141,7 @@ export interface LogResult {
   logs: Array<{
     timestamp: string;
     level: 'DEBUG' | 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
-    source: 'PHP' | 'WP_CLI' | 'APACHE' | 'DATABASE' | 'RUNTIME';
+    source: 'PHP' | 'WP_CLI' | 'APACHE' | 'DATABASE' | 'RUNTIME' | 'NODE' | 'NPM' | 'CONTAINER' | 'SYSTEM' | string;
     message: string;
   }>;
   totalLines: number;
